@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录页面</title>
+    <link href="css/login.css" rel="stylesheet"/>
+    <script src="js/jquery-3.4.1.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/axios.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+</head>
+<body>
+<div class="container right-panel-active" id="app">
+    <!-- Sign In -->
+    <div class="container__form container--signup">
+        <form action="#" class="form" id="form2">
+            <h2 class="form__title">登&emsp;&emsp;录</h2>
+            <input type="text" placeholder="账号" class="input" v-model="account"/>
+            <input type="password" placeholder="密码 " class="input" v-model="password"/>
+            <a href="#" class="link">忘 记 密 码?</a>
+            <button class="btn" @click="login_in">登 录</button>
+        </form>
+    </div>
+
+    <!-- Sign Up -->
+    <div class="container__form container--signin">
+        <form action="#" class="form" id="form1">
+            <h2 class="form__title">注&emsp;&emsp;册</h2>
+            <input type="text" placeholder="账号" class="input"/>
+            <input type="text" placeholder="用户名" class="input"/>
+            <input type="email" placeholder="邮箱" class="input"/>
+            <input type="password" placeholder="密码" class="input"/>
+
+            <el-checkbox-group v-model="checkList">
+                <el-checkbox label="采购"></el-checkbox>
+                <el-checkbox label="销售"></el-checkbox>
+                <el-checkbox label="仓管"></el-checkbox>
+                <el-checkbox label="财务"></el-checkbox>
+            </el-checkbox-group>
+            <button class="btn">注 册</button>
+        </form>
+    </div>
+
+    <!-- Overlay -->
+    <div class="container__overlay">
+        <div class="overlay">
+            <div class="overlay__panel overlay--left">
+                <button class="btn" id="signIn">Sign Up</button>
+            </div>
+            <div class="overlay__panel overlay--right">
+                <button class="btn" id="signUp">Sign In</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script>
+    window.onload = function () {
+        let vm = new Vue({
+            el: "#app",
+            data: {
+                account: "",
+                password: "",
+                checkList: ['']
+            },
+            methods: {
+                login_in: function () {
+                    let scmUserJson = {account: this.account, password: this.password};
+
+                    axios.post("login",scmUserJson).then(function (resp){
+                        alert(resp.data.message);
+                        if(resp.data.code == "200"){
+                            document.location.href = "index.html";
+                        }
+                    });
+                }
+            }
+        });
+
+        const signInBtn = document.getElementById("signIn");
+        const signUpBtn = document.getElementById("signUp");
+        const fistForm = document.getElementById("form1");
+        const secondForm = document.getElementById("form2");
+        const container = document.querySelector(".container");
+
+        signInBtn.addEventListener("click", () => {
+            container.classList.remove("right-panel-active");
+        });
+
+        signUpBtn.addEventListener("click", () => {
+            container.classList.add("right-panel-active");
+        });
+        fistForm.addEventListener("submit", (e) => e.preventDefault());
+        secondForm.addEventListener("submit", (e) => e.preventDefault());
+
+    }
+</script>
+</html>

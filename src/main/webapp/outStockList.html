@@ -1,0 +1,167 @@
+<link rel="stylesheet" href="css/index.css"/>
+<script src="js/jquery-3.4.1.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/axios.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="js/menu.js"></script>
+
+<div id="app" style="height: 100%;">
+  <el-breadcrumb separator-class="el-icon-arrow-right">
+    <el-breadcrumb-item :to="{ path: '/' }">位置</el-breadcrumb-item>
+    <el-breadcrumb-item>仓管管理</el-breadcrumb-item>
+    <el-breadcrumb-item>出库登记</el-breadcrumb-item>
+  </el-breadcrumb>
+  <br/>
+
+  <el-menu
+          :default-active="activeMenu"
+          class="el-menu-demo"
+          mode="horizontal"
+          @select="handleSelect"
+          background-color="#545c64"
+          text-color="#fff"
+          active-text-color="#ffd04b">
+    <el-menu-item index="1" value="1">货到付款</el-menu-item>
+    <el-menu-item index="2" value="2">款到发货</el-menu-item>
+    <el-menu-item index="3" value="3">预付款到发货</a></el-menu-item>
+  </el-menu>
+  <el-table :data="tableData" height="425px" border style="width: 100%" v-if="tableData.payType=4">
+    <el-table-column fixed prop="soId" label="销售单编号" width="180">
+      <template  slot-scope="scope">
+        <el-button type="text" @click="showDetails(scope.row.soId)">{{scope.row.soId}}</el-button>
+      </template>
+    </el-table-column>
+    <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
+    <el-table-column prop="customerName" label="客户名称" width="180"></el-table-column>
+    <el-table-column prop="scmuserName" label="创建用户" width="180"></el-table-column>
+    <el-table-column prop="tipFee" label="附加费用" width="180"></el-table-column>
+    <el-table-column prop="productTotal" label="销售产品总价" width="180"></el-table-column>
+    <el-table-column prop="soTotal" label="销售单总价格" width="180"></el-table-column>
+    <el-table-column prop="payType" label="付款方式" width="180">
+      <template  slot-scope="scope">
+        <span v-if="scope.row.payType==1">货到付款</span>
+        <span v-else-if="scope.row.payType==2">款到发货</span>
+        <span v-else-if="scope.row.payType==3">预付款发货</span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="prePayFee" label="最低预付款金额" width="180"></el-table-column>
+    <el-table-column prop="status" label="处理状态" width="180">
+      <template slot-scope="scope">
+        <span v-if="scope.row.status==1">新建</span>
+        <span v-else-if="scope.row.status==2">收货</span>
+        <span v-else-if="scope.row.status==3">付款</span>
+        <span v-else-if="scope.row.status==4">了结</span>
+        <span v-else-if="scope.row.status==5">预付</span>
+      </template>
+    </el-table-column>
+    <el-table-column fixed="right" label="操作" width="140">
+      <template slot-scope="scope">
+        <el-button size="small" round type="" style="background-color:#9ec6ff;color:#faf9f7" @click="outStockSomain(scope.row.soId)" >出库</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+  <el-pagination
+          background
+          layout="sizes, prev, pager, next, jumper, ->, total, slot"
+          :total="totalRecord"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :page-sizes="[6,10,15,20]"
+          @current-change="handleCurrentChange"
+          @size-change="handleSize">
+  </el-pagination>
+</div>
+
+<script>
+  window.onload = function () {
+
+    let vm = new Vue({
+      el: "#app",
+      data:{
+        labelPosition:"left",
+        dialogFormVisible:false,
+        tableData:[],  /*主页数据*/
+        totalRecord:0,
+        currentPage:1,
+        pageSize:6,
+        form:{
+
+        },
+        payType:1,
+        activeMenu:"",
+      },
+      methods:{
+        init:function (){
+          // this.getData(this.currentPage,this.pageSize);
+          this.handleSelect(this.payType);
+        },
+        getData:function (curP,pSize){
+          let that = this;
+
+          // 查询采购单信息
+          axios.get("queryPoMainByPage?currentPage="+curP+"&pageSize="+pSize).then(function (resp){
+            that.tableData = resp.data.data.lists;
+            that.totalRecord = resp.data.data.totalRecord;
+          });
+
+          //查询采购单基础信息  创建人  采购单编号  创建时间
+          // axios.get("getBasicMassage").then(function (resp){
+          //     that.form.soId = resp.data.data.soId;
+          //     that.form.scmuserName = resp.data.data.account;
+          //     that.form.createTime = resp.data.data.createTime;
+          // });
+
+          //查询供应商信息
+          // axios.get("getVenderMassage").then(function (resp){
+          //     that.vendersForm.venders = resp.data.data;
+          // });
+        },
+        handleCurrentChange:function (val){
+          this.currentPage = val;
+          this.handleSelect(this.payType);
+        },
+        handleSize:function (val){
+          this.pageSize = val;
+          this.currentPage = 1;
+          this.handleSelect(this.payType);
+        },
+        handleSelect:function (index){
+          debugger
+          let that = this;
+          this.activeMenu = index;
+          window.localStorage.setItem('activeMenu',this.activeMenu);
+          this.payType = index;
+          console.log(index);
+          axios.get("querySoMainByOutStock?currentPage="+this.currentPage+"&pageSize="+this.pageSize+"&payType="+index).then(function (resp){
+            that.tableData = resp.data.data.lists;
+            that.totalRecord = resp.data.data.totalRecord;
+          });
+        },
+        outStockSomain:function (soId){
+          let that = this;
+          console.log(soId);
+          axios.get("outStockSomain?soId="+soId).then(function (resp){
+            if(resp.data.code == '200'){
+              that.$message({
+                message: '出库成功！',
+                type: 'success'
+              });
+              that.init();
+            }else {
+              that.$message({
+                message: '出库失败！',
+                type: 'danger'
+              });
+              that.init();
+            }
+          });
+        }
+      }
+    });
+
+    vm.init();
+  }
+</script>

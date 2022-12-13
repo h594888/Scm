@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aowin.mapper.PoMainMapper">
+    <select id="queryPoMainByPage" resultType="com.aowin.domain.PoMain">
+        select pm.POID,
+               pm.CreateTime,
+               v.Name venderName,
+               s.Name
+                      scmuserName,
+               pm.TipFee,
+               pm.ProductTotal,
+               pm.POTotal,
+               pm.PayType,
+               pm.PrePayFee,
+               pm.Status
+        from pomain pm
+                 inner join vender v
+                            on pm.VenderCode = v.VenderCode
+                 inner join scmuser s
+                            on pm.Account = s.Account
+        group by pm.POID
+        order by pm.CreateTime asc
+            limit #{page.currentPage}, #{page.pageSize}
+    </select>
+    <select id="getPoMainCount" resultType="java.lang.Integer">
+        select count(*)
+        from (select pm.POID,
+                     pm.CreateTime,
+                     v.Name venderName,
+                     s.Name
+                            scmuserName,
+                     pm.TipFee,
+                     pm.POTotal,
+                     pm.PayType,
+                     pm.PrePayFee
+              from pomain pm
+                       inner join vender v
+                                  on pm.VenderCode = v.VenderCode
+                       inner join scmuser s
+                                  on pm.Account = s.Account
+              group by pm.POID
+              order by pm.CreateTime asc) count;
+    </select>
+    <select id="getPoItemsByPoId" resultType="com.aowin.domain.PoItem">
+        select pi.POID, p.Name productName, pi.UnitPrice, pi.Num, pi.UnitName, pi.ItemPrice
+        from poitem pi
+                 inner join product p on pi.ProductCode = p.ProductCode
+        where POID = #{poId}
+    </select>
+    <insert id="addPoMain">
+        insert into pomain (POID, CreateTime, VenderCode, Account, TipFee, ProductTotal, POTotal, PayType, PrePayFee,
+                            Remark, Status)
+        values (#{pomain.poId}, #{pomain.createTime}, #{pomain.venderCode}, #{pomain.scmuserName},
+                #{pomain.tipFee}, #{pomain.productTotal}, #{pomain.poTotal}, #{pomain.payType}, #{pomain.prePayFee},
+                #{pomain.remark}, '1');
+    </insert>
+    <insert id="addPoItem">
+        insert into poitem (POID, ProductCode, UnitPrice, Num, UnitName, ItemPrice)
+        values (#{poitem.poId}, #{poitem.productCode}, #{poitem.unitPrice}, #{poitem.num}, #{poitem.unitName},
+                #{poitem.itemPrice})
+    </insert>
+    <update id="updateProduct">
+        update product
+        set PONum=PONum + #{num}
+        where ProductCode = #{productcode}
+    </update>
+    <update id="updateDelProductPoNum">
+        update product
+        set PONum=PONum - #{num}
+        where ProductCode = #{productcode}
+    </update>
+    <update id="endPomain">
+        update pomain
+        set Status  = 4,
+            EndTime = NOW(),
+            EndUser = #{account}
+        where POID = #{poId};
+    </update>
+    <select id="queryPoMainProductCount" resultType="com.aowin.domain.PoItem">
+        select num, ProductCode
+        from poitem
+        where POID = #{poId};
+    </select>
+    <select id="queryPoMainByPayType" resultType="com.aowin.domain.PoMain">
+        select pm.POID,pm.CreateTime,v.Name venderName,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <choose>
+                <when test=" payType == 1">
+                    and pm.PayType = 1 and pm.status = 3
+                </when>
+                <when test="payType == 2">
+                    and pm.PayType = 2 and pm.status = 2
+                </when>
+                <when test="payType == 3">
+                    and pm.PayType = 3 and pm.status = 3
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="getPoMainCountByPayType" resultType="java.lang.Integer">
+        select count(*) from (select pm.POID,pm.CreateTime,v.Name venderName,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <choose>
+                <when test="payType == 1">
+                    and pm.PayType = 1 and pm.status = 3
+                </when>
+                <when test="payType == 2">
+                    and pm.PayType = 2 and pm.status = 2
+                </when>
+                <when test="payType == 3">
+                    and pm.PayType = 3 and pm.status = 3
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        limit #{page.currentPage},#{page.pageSize}
+        ) count;
+    </select>
+    <select id="getPoMainByPoID" resultType="com.aowin.domain.PoMain">
+        select p.*, v.name venderName
+        from pomain p,
+             vender v
+        where p.vendercode = v.vendercode
+          and p.poID = #{poid}
+    </select>
+    <select id="getItemsByPoID" resultType="com.aowin.domain.PoItem">
+        select pi.*, p.name productName
+        from poitem pi,
+             product p
+        where pi.productCode = p.productCode
+          and poId = #{poid}
+    </select>
+    <select id="getPomainPayType" resultType="java.lang.Integer">
+        select PayType
+        from pomain
+        where POID = #{poId}
+    </select>
+    <select id="queryPomainStatus" resultType="java.lang.Integer">
+        select Status
+        from pomain
+        where POID = #{poId}
+    </select>
+    <select id="queryPoMainByPoID" resultType="com.aowin.domain.PoMain">
+        select *
+        from pomain
+        where POID = #{poId}
+    </select>
+    <select id="queryPoMainCondition" resultType="com.aowin.domain.PoMain">
+        select pm.POID,pm.CreateTime,v.Name venderName,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <if test="condition.poId != null and condition.poId !=''">
+                and pm.POID = #{condition.poId}
+            </if>
+            <if test="condition.venderCode != null and condition.venderCode !='' ">
+                and pm.vendercode = #{condition.venderCode}
+            </if>
+            <if test="condition.startTime != null and condition.startTime != '' and condition.startTime != 'undefined'  ">
+                and pm.CreateTime >= #{condition.startTime}
+            </if>
+            <if test="condition.endTime != null and condition.endTime != '' and condition.endTime != 'undefined' ">
+                and #{condition.endTime} >= pm.CreateTime
+            </if>
+            <if test="condition.payType != 0 ">
+                and pm.paytype = #{condition.payType}
+            </if>
+            <if test="condition.status != 0 ">
+                and pm.status = #{condition.status}
+            </if>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPoMainConditionCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select pm.POID,pm.CreateTime,v.Name venderName,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <if test="condition.poId != null and condition.poId !=''">
+                and pm.POID = #{condition.poId}
+            </if>
+            <if test="condition.venderCode != null and condition.venderCode !='' ">
+                and pm.vendercode = #{condition.venderCode}
+            </if>
+            <if test="condition.startTime != null and condition.startTime != ''and condition.startTime != 'undefined' ">
+                and pm.CreateTime >= #{condition.startTime}
+            </if>
+            <if test="condition.endTime != null and condition.endTime != '' and condition.endTime != 'undefined' ">
+                and #{condition.endTime} >= pm.CreateTime
+            </if>
+            <if test="condition.payType != 0 ">
+                and pm.paytype = #{condition.payType}
+            </if>
+            <if test="condition.status != 0 ">
+                and pm.status = #{condition.status}
+            </if>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        )count
+    </select>
+
+    <delete id="delPoItem">
+        delete
+        from poitem
+        where POID = #{poId}
+    </delete>
+    <delete id="delPoMain">
+        delete
+        from pomain
+        where POID = #{poId}
+    </delete>
+    <select id="queryStock">
+        select * from pomain
+        <where>
+            <choose>
+                <when test="paytype = 1">
+                    and status = 1 and paytype = 1
+                </when>
+                <when test="paytype = 2">
+                    and status = 3 and paytype = 2
+                </when>
+                <when test="paytype = 3">
+                    and status = 5 and paytype = 3
+                </when>
+            </choose>
+        </where>
+    </select>
+    <select id="queryPoReport" resultType="com.aowin.domain.PoMain">
+        select pm.POID,pm.CreateTime,v.Name venderName,pm.VenderCode,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status,pm.PayTime,pm.PayUser
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+               and pm.CreateTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+               and pm.CreateTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPoReportCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select pm.POID,pm.CreateTime,v.Name venderName,pm.VenderCode,s.Name
+        scmuserName,pm.TipFee,pm.ProductTotal,pm.POTotal,pm.PayType,pm.PrePayFee,pm.Status
+        from pomain pm
+        inner join vender v
+        on pm.VenderCode = v.VenderCode
+        inner join scmuser s
+        on pm.Account = s.Account
+        <where>
+            <if test="startDate!=null and startDate!='' and startDate!='null'">
+                and pm.CreateTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+               and pm.CreateTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        )count
+    </select>
+</mapper>

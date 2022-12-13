@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aowin.mapper.VenderMapper">
+    <select id="queryVenderByPage" resultType="com.aowin.domain.Vender">
+        select VenderCode,Name,Contactor,Address,Postcode,CreateDate,Tel,Fax,Password
+        from vender
+        <where>
+            <if test="vender.name!=null and vender.name!='' ">
+                or Name like concat('%',#{vender.name},'%')
+            </if>
+            <if test="vender.venderCode!=null and vender.venderCode != ''">
+                or VenderCode = #{vender.venderCode}
+            </if>
+        </where>
+        group by VenderCode order by CreateDate asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="getVenderCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select VenderCode,Name,Contactor,Address,Postcode,CreateDate,Tel,Fax,Password
+        from vender
+        <where>
+            <if test="vender.name!=null and vender.name!='' ">
+                or name like concat('%',#{vender.name},'%')
+            </if>
+            <if test="vender.venderCode!=null and vender.venderCode != ''">
+                or VenderCode = #{vender.venderCode}
+            </if>
+        </where>
+        group by VenderCode order by CreateDate asc
+         ) count
+    </select>
+    <select id="getAllVender" resultType="com.aowin.domain.Vender">
+        select * from vender
+    </select>
+
+    <insert id="addVender">
+        insert into vender(VenderCode,Name,Password,Contactor,Address,Postcode,Tel,Fax,CreateDate)
+        values (#{venderCode},#{name},#{password},#{contactor},#{address},#{postCode},#{tel},#{fax},#{createDate})
+    </insert>
+
+    <update id="updateVender">
+        update vender
+        set venderCode = #{venderCode},
+            contactor=#{contactor},fax=#{fax},password=#{password},
+            name=#{name}, address = #{address},postCode=#{postCode},createdate=#{createDate},tel=#{tel}
+        where venderCode = #{oldvenderCode}
+    </update>
+
+    <delete id="delVender">
+        delete from vender where VenderCode = #{venderCode}
+    </delete>
+</mapper>

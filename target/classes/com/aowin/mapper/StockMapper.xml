@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aowin.mapper.StockMapper">
+    <insert id="addStockCord">
+        insert into stockrecord(ProductCode, OrderCode, StockNum, StockType, StockTime, CreateUser)
+        values (#{stockRecord.productCode}, #{stockRecord.orderCode}, #{stockRecord.stockNum}, 1, NOW(),
+                #{stockRecord.createUser})
+    </insert>
+    <insert id="addSoMainStockCord">
+        insert into stockrecord(ProductCode, OrderCode, StockNum, StockType, StockTime, CreateUser)
+        values (#{stockRecord.productCode}, #{stockRecord.orderCode}, #{stockRecord.stockNum}, 2, NOW(),
+                #{stockRecord.createUser})
+    </insert>
+
+    <insert id="addcheckStockCord">
+        insert into checkstock (ProductCode, OriginNum, RealNum, StockTime, CreateUser, Description, Type)
+        values (#{checkStock.productCode}, #{checkStock.originNum}, #{checkStock.realNum}, NOW(), #{name},
+                #{checkStock.description}, #{checkStock.type})
+    </insert>
+    <insert id="addStockRecord">
+        insert into stockrecord(ProductCode, StockNum, StockType, StockTime, CreateUser)
+        values (#{stockRecord.productCode}, #{stockRecord.stockNum}, #{stockRecord.stockType}, NOW(),
+                #{stockRecord.createUser})
+    </insert>
+    <update id="updatePomainInStock">
+        update pomain
+        set StockTime = NOW(),
+            StockUser = #{name},
+            Status    = 2
+        where POID = #{poId}
+    </update>
+    <update id="updateProductPoNum">
+        update product
+        set PONum = PONum - #{num},
+            num   = num + #{num}
+        where productCode = #{productCode}
+    </update>
+    <update id="updateSomainOnStock">
+        update somain
+        set StockTime = NOW(),
+            StockUser = #{name},
+            Status    = 2
+        where SOID = #{soId}
+    </update>
+    <update id="updateProductSoNum">
+        update product
+        set SONum = SONum - #{num},
+            num= num - #{num}
+        where productCode = #{productCode}
+    </update>
+    <update id="updateProductNumByKui">
+        update product
+        set Num = num - #{numChange}
+        where productCode = #{productCode}
+    </update>
+    <update id="updateProductNumByzhuan">
+        update product
+        set Num = num + #{numChange}
+        where productCode = #{productCode}
+    </update>
+
+    <select id="queryPoMainByInStock" resultType="com.aowin.domain.PoMain">
+        select pm.POID,pm.CreateTime,v.Name venderName,s.name
+        scmuserName,pm.tipfee,pm.ProductTotal,pm.POTotal,pm.payType,pm.PrePayFee,pm.status
+        from pomain pm
+        inner join Vender v
+        on v.VenderCode = pm.VenderCode
+        inner join scmuser s
+        on s.Account = pm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and pm.payType = 1 and pm.status = 1
+                </when>
+                <when test="payType==2">
+                    and pm.payType = 2 and pm.status = 3
+                </when>
+                <when test="payType==3">
+                    and pm.payType = 3 and pm.status = 5
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPoMainByInStockCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select pm.POID,pm.CreateTime,v.Name venderName,s.name
+        scmuserName,pm.tipfee,pm.ProductTotal,pm.POTotal,pm.payType,pm.PrePayFee,pm.status
+        from pomain pm
+        inner join Vender v
+        on v.VenderCode = pm.VenderCode
+        inner join scmuser s
+        on s.Account = pm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and pm.payType = 1 and pm.status = 1
+                </when>
+                <when test="payType==2">
+                    and pm.payType = 2 and pm.status = 3
+                </when>
+                <when test="payType==3">
+                    and pm.payType = 3 and pm.status = 5
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime
+        )count
+    </select>
+    <select id="querySoMainByOutStock" resultType="com.aowin.domain.SoMain">
+        select sm.SOID,sm.CreateTime,c.Name customerName,s.name
+        scmuserName,sm.tipfee,sm.ProductTotal,sm.SOTotal,sm.payType,sm.PrePayFee,sm.status
+        from somain sm
+        inner join Customer c
+        on c.CustomerCode = sm.CustomerCode
+        inner join scmuser s
+        on s.Account = sm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and sm.payType = 1 and sm.status = 1
+                </when>
+                <when test="payType==2">
+                    and sm.payType = 2 and sm.status = 3
+                </when>
+                <when test="payType==3">
+                    and sm.payType = 3 and sm.status = 5
+                </when>
+            </choose>
+        </where>
+        group by sm.SOID order by sm.CreateTime
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="querySoMainByOutStockCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select sm.SOID,sm.CreateTime,c.Name customerName,s.name
+        scmuserName,sm.tipfee,sm.ProductTotal,sm.SOTotal,sm.payType,sm.PrePayFee,sm.status
+        from somain sm
+        inner join Customer c
+        on c.CustomerCode = sm.CustomerCode
+        inner join scmuser s
+        on s.Account = sm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and sm.payType = 1 and sm.status = 1
+                </when>
+                <when test="payType==2">
+                    and sm.payType = 2 and sm.status = 3
+                </when>
+                <when test="payType==3">
+                    and sm.payType = 3 and sm.status = 5
+                </when>
+            </choose>
+        </where>
+        group by sm.SOID order by sm.CreateTime
+        )count
+    </select>
+    <select id="getProductNum" resultType="java.lang.Integer">
+        select num
+        from product
+        where ProductCode = #{productCode}
+    </select>
+    <select id="queryStockCondition" resultType="com.aowin.domain.Product">
+        select * from product
+        <where>
+            <if test="productCode!=null and productCode!=''">
+                and ProductCode = #{productCode}
+            </if>
+            <if test="productName!=null and productName!=''">
+                and Name like concat('%',#{productName},'%')
+            </if>
+            <if test="minNum!=null and minNum!=0">
+                and num >= #{minNum}
+            </if>
+            <if test="maxNum!=null and maxNum!=0">
+                and #{maxNum} >=num
+            </if>
+        </where>
+        group by ProductCode order by CreateDate
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryStockConditionCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select * from product
+        <where>
+            <if test="productCode!=null and productCode!=''">
+                and ProductCode = #{productCode}
+            </if>
+            <if test="productName!=null and productName!=''">
+                and Name like concat('%',#{productName},'%')
+            </if>
+            <if test="minNum!=null and minNum!=0">
+                and num >= #{minNum}
+            </if>
+            <if test="maxNum!=null and maxNum!=0">
+                and #{maxNum} >=num
+            </if>
+        </where>
+        group by ProductCode order by CreateDate
+        )count
+    </select>
+    <select id="queryOutStockReport" resultType="com.aowin.domain.StockRecord">
+        select sr.OrderCode,sr.StockTime,sr.ProductCode,p.Name productName,sr.StockNum,sr.StockNum*p.Price poTotal
+        from stockrecord sr
+        inner join product p
+        on sr.ProductCode = p.ProductCode
+        <where>
+            (sr.StockType = 2 or sr.StockType = 4)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and sr.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and sr.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by sr.StockID order by sr.StockTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryOutStockReportCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select sr.OrderCode,sr.StockTime,sr.ProductCode,p.Name productName,sr.StockNum,sr.StockNum*p.Price poTotal
+        from stockrecord sr
+        inner join product p
+        on sr.ProductCode = p.ProductCode
+        <where>
+            (sr.StockType = 2 or sr.StockType = 4)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and sr.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and sr.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by sr.StockID order by sr.StockTime asc
+        )count
+    </select>
+    <select id="queryInStockReport" resultType="com.aowin.domain.StockRecord">
+        select sr.OrderCode,sr.StockTime,sr.ProductCode,p.Name productName,sr.StockNum,sr.StockNum*p.Price poTotal
+        from stockrecord sr
+        inner join product p
+        on sr.ProductCode = p.ProductCode
+        <where>
+            (sr.StockType = 1 or sr.StockType = 3)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and sr.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and sr.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by sr.StockID order by sr.StockTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryInStockReportCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select sr.OrderCode,sr.StockTime,sr.ProductCode,p.Name productName,sr.StockNum,sr.StockNum*p.Price poTotal
+        from stockrecord sr
+        inner join product p
+        on sr.ProductCode = p.ProductCode
+        <where>
+            (sr.StockType = 1 or sr.StockType = 3)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and sr.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and sr.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by sr.StockID order by sr.StockTime asc
+        ) count
+    </select>
+    <select id="queryStockChangeReport" resultType="com.aowin.domain.StockRecord">
+        select cs.ProductCode, p.Name productName, cs.RealNum
+        from checkstock cs
+        inner join product p
+        on cs.ProductCode = p.ProductCode
+        <where>
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and cs.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and cs.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by cs.StockID order by cs.StockTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryStockChangeReportCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select cs.ProductCode, p.Name productName, cs.RealNum
+        from checkstock cs
+        inner join product p
+        on cs.ProductCode = p.ProductCode
+        <where>
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and cs.StockTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and cs.StockTime &lt; #{endDate}
+            </if>
+        </where>
+        group by cs.StockID order by cs.StockTime asc
+        )count
+    </select>
+</mapper>

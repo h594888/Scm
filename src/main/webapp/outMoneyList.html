@@ -1,0 +1,244 @@
+<link rel="stylesheet" href="css/index.css"/>
+<script src="js/jquery-3.4.1.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/axios.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="js/menu.js"></script>
+<style>
+    /* 取消input的上下箭头 */
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none !important;
+    }
+
+    input::-webkit-outer-spin-button {
+        -webkit-appearance: none !important;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>
+
+<div id="app" style="height: 100%;">
+    <el-breadcrumb separator-class="el-icon-arrow-right">
+        <el-breadcrumb-item :to="{ path: '/' }">位置</el-breadcrumb-item>
+        <el-breadcrumb-item>财务收支</el-breadcrumb-item>
+        <el-breadcrumb-item>付款登记</el-breadcrumb-item>
+    </el-breadcrumb>
+    <br/>
+
+    <el-menu
+            :default-active="activeMenu"
+            class="el-menu-demo"
+            mode="horizontal"
+            @select="handleSelect"
+            background-color="#545c64"
+            text-color="#fff"
+            active-text-color="#ffd04b">
+        <el-menu-item index="1" value="1">货到付款</el-menu-item>
+        <el-menu-item index="2" value="2">款到发货</el-menu-item>
+        <el-menu-item index="3" value="3">预付款到发货</a></el-menu-item>
+    </el-menu>
+    <el-table :data="tableData" height="425px" border style="width: 100%" v-if="tableData.payType=4">
+        <el-table-column fixed prop="poId" label="采购单编号" width="180">
+            <template  slot-scope="scope">
+                <el-button type="text" @click="showDetails(scope.row.poId)">{{scope.row.poId}}</el-button>
+            </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
+        <el-table-column prop="venderName" label="供应商名称" width="180"></el-table-column>
+        <el-table-column prop="scmuserName" label="创建用户" width="180"></el-table-column>
+        <el-table-column prop="tipFee" label="附加费用" width="180"></el-table-column>
+        <el-table-column prop="productTotal" label="采购产品总价" width="180"></el-table-column>
+        <el-table-column prop="poTotal" label="采购单总价格" width="180"></el-table-column>
+        <el-table-column prop="payType" label="付款方式" width="180">
+            <template  slot-scope="scope">
+                <span v-if="scope.row.payType==1">货到付款</span>
+                <span v-else-if="scope.row.payType==2">款到发货</span>
+                <span v-else-if="scope.row.payType==3">预付款发货</span>
+            </template>
+        </el-table-column>
+        <el-table-column prop="prePayFee" label="最低预付款金额" width="180"></el-table-column>
+        <el-table-column prop="status" label="处理状态" width="180">
+            <template slot-scope="scope">
+                <span v-if="scope.row.status==1">新建</span>
+                <span v-else-if="scope.row.status==2">收货</span>
+                <span v-else-if="scope.row.status==3">付款</span>
+                <span v-else-if="scope.row.status==4">了结</span>
+                <span v-else-if="scope.row.status==5">预付</span>
+            </template>
+        </el-table-column>
+        <el-table-column fixed="right" label="操作" width="140">
+            <template slot-scope="scope">
+                <el-button size="small" round type="" style="background-color:#ffc5dd;color: #333333" @click="outPayRecord(scope.row.poId)" >付款</el-button>
+            </template>
+        </el-table-column>
+    </el-table>
+    <el-pagination
+            background
+            layout="sizes, prev, pager, next, jumper, ->, total, slot"
+            :total="totalRecord"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :page-sizes="[6,10,15,20]"
+            @current-change="handleCurrentChange"
+            @size-change="handleSize">
+    </el-pagination>
+    <el-dialog title="付款登记" :visible.sync="outMoney" width="400px" top="100px">
+        <el-form label-width="80px" :model="form">
+            <el-form-item label="采购单号:">
+                <el-input v-model="form.poId" clearable placeholder="请输入采购单单号" maxlength="20" minlengh="4" show-word-limit autocomplete="off"
+                          style="width: 210px" type="number" ></el-input>
+            </el-form-item>
+            <el-form-item label="付款金额:">
+                <el-input v-model="form.payPrice" clearable placeholder="请输入付款总金额" autocomplete="off"
+                          style="width: 210px" type="number"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer" style="margin-top: -20px">
+            <el-button @click="cancel" size="small">取 消</el-button>
+            <el-button type="primary" @click="surePayrecord()" size="small">确 定</el-button>
+        </div>
+    </el-dialog>
+    <el-dialog title="预付款付款登记" :visible.sync="outMoneyByYuFu" width="400px" top="100px" v-show="outMoneyByYuFu">
+        <el-form label-width="80px" :model="form">
+            <el-form-item label="销售单号:">
+                <el-input v-model="form.poId" clearable placeholder="请输入采购单单号" maxlength="20" minlengh="4" show-word-limit autocomplete="off"
+                          style="width: 210px" type="number" ></el-input>
+            </el-form-item>
+            <el-form-item label="预付金额:">
+                <el-input v-model="form.payPrice" clearable placeholder="请输入最低预付款金额" autocomplete="off"
+                          style="width: 210px" type="number"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer" style="margin-top: -50px">
+            <el-button @click="cancel" size="small">取 消</el-button>
+            <el-button type="primary" @click="surePayrecord()" size="small">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+
+<script>
+    window.onload = function () {
+
+        let vm = new Vue({
+            el: "#app",
+            data:{
+                labelPosition:"left",
+                dialogFormVisible:false,
+                tableData:[],  /*主页数据*/
+                totalRecord:0,
+                currentPage:1,
+                pageSize:6,
+                outMoney:false,
+                outMoneyByYuFu:false,
+                form:{
+                    payPrice:0
+                },
+                payType:1,
+                activeMenu:"",
+            },
+            methods:{
+                init:function (){
+                    // this.getData(this.currentPage,this.pageSize);
+                    this.handleSelect(this.payType);
+                },
+                getData:function (curP,pSize){
+                    let that = this;
+
+                    // 查询采购单信息
+                    axios.get("queryPoMainByPage?currentPage="+curP+"&pageSize="+pSize).then(function (resp){
+                        that.tableData = resp.data.data.lists;
+                        that.totalRecord = resp.data.data.totalRecord;
+                    });
+
+                    //查询采购单基础信息  创建人  采购单编号  创建时间
+                    // axios.get("getBasicMassage").then(function (resp){
+                    //     that.form.poId = resp.data.data.poId;
+                    //     that.form.scmuserName = resp.data.data.account;
+                    //     that.form.createTime = resp.data.data.createTime;
+                    // });
+
+                    //查询供应商信息
+                    // axios.get("getVenderMassage").then(function (resp){
+                    //     that.vendersForm.venders = resp.data.data;
+                    // });
+                },
+                handleCurrentChange:function (val){
+                    this.currentPage = val;
+                    this.handleSelect(this.payType);
+                },
+                handleSize:function (val){
+                    this.pageSize = val;
+                    this.currentPage = 1;
+                    this.handleSelect(this.payType);
+                },
+                handleSelect:function (index){
+                    debugger
+                    let that = this;
+                    this.activeMenu = index;
+                    window.localStorage.setItem('activeMenu',this.activeMenu);
+                    this.payType = index;
+                    console.log(index);
+                    axios.get("queryPoMainByPayRecord?currentPage="+this.currentPage+"&pageSize="+this.pageSize+"&payType="+index).then(function (resp){
+                        that.tableData = resp.data.data.lists;
+                        that.totalRecord = resp.data.data.totalRecord;
+                    });
+                },
+                outPayRecord:function (poId){
+                    console.log(poId);
+                    this.poId=poId;
+                    this.form.poId=poId;
+                    console.log(this.activeMenu);
+                    let that = this;
+                    if (this.activeMenu==3){
+                        this.outMoneyByYuFu=true;
+                        this.outMoney=false;
+                    }
+                    if (this.activeMenu==2){
+                        this.outMoney=true;
+                        this.outMoneyByYuFu=false;
+                    }
+                    if (this.activeMenu==1){
+                        this.outMoney=true;
+                        this.outMoneyByYuFu=false;
+                    }
+                },
+                surePayrecord:function (){
+                    let that = this;
+                    console.log(this.poId);
+                    console.log(this.form.payPrice)
+                    axios.get("outPayRecord?poId="+this.poId+"&payPrice="+this.form.payPrice).then(function (resp){
+                        if(resp.data.code == '200'){
+                            that.$message({
+                                message: '付款成功！',
+                                type: 'success'
+                            });
+                            that.init();
+                        }else {
+                            that.$message({
+                                message: '付款失败！',
+                                type: 'danger'
+                            });
+                            that.init();
+                        }
+                        that.cancel();
+                    });
+                },
+                cancel:function (){
+                    this.outMoneyByYuFu = false;
+                    this.outMoney = false;
+                    this.init();
+                },
+                closeBefore:function (){
+                    this.cancel();
+                    this.init();
+                }
+            }
+        });
+        vm.init();
+    }
+</script>

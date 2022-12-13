@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aowin.mapper.PayRecordMapper">
+    <insert id="addPayRecord">
+        insert into payrecord(payTime, payPrice, account, orderCode, payType)
+        values (NOW(), #{price}, #{name}, #{soId}, 1)
+    </insert>
+    <insert id="addPrePayRecord">
+        insert into payrecord(payTime, payPrice, account, orderCode, payType)
+        values (NOW(), #{price}, #{name}, #{soId}, 3)
+    </insert>
+    <insert id="addPomainPayRecord">
+        insert into payrecord(payTime, payPrice, account, orderCode, payType)
+        values (NOW(), #{price}, #{name}, #{poId}, 2)
+    </insert>
+    <insert id="addPomainPrePayRecord">
+        insert into payrecord(payTime, payPrice, account, orderCode, payType)
+        values (NOW(), #{price}, #{name}, #{poId}, 4)
+    </insert>
+    <update id="updateSomainpayRecord">
+        update somain
+        set PayTime = NOW(),
+            PayUser = #{name},
+            Status  = 3
+        where SOID = #{soId}
+    </update>
+    <update id="updateSomainPrepayRecord">
+        update somain
+        set PayTime = NOW(),
+            PayUser = #{name},
+            Status  = 5
+        where SOID = #{soId}
+    </update>
+    <update id="updatePomainPrepayRecord">
+        update pomain
+        set PayTime = NOW(),
+            PayUser = #{name},
+            Status  = 5
+        where POID = #{poId}
+    </update>
+    <update id="updatePomainpayRecord">
+        update pomain
+        set PayTime = NOW(),
+            PayUser = #{name},
+            Status  = 3
+        where POID = #{poId}
+    </update>
+
+    <select id="querySoMainByPayRecord" resultType="com.aowin.domain.SoMain">
+        select sm.SOID,sm.CreateTime,c.Name customerName,s.name
+        scmuserName,sm.tipfee,sm.ProductTotal,sm.SOTotal,sm.payType,sm.PrePayFee,sm.status
+        from somain sm
+        inner join Customer c
+        on c.CustomerCode = sm.CustomerCode
+        inner join scmuser s
+        on s.Account = sm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and sm.payType = 1 and sm.status = 2
+                </when>
+                <when test="payType==2">
+                    and sm.payType = 2 and sm.status = 1
+                </when>
+                <when test="payType==3">
+                    and sm.payType = 3 and sm.status = 1
+                </when>
+            </choose>
+        </where>
+        group by sm.SOID order by sm.CreateTime
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="querySoMainByPayRecordCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select sm.SOID,sm.CreateTime,c.Name customerName,s.name
+        scmuserName,sm.tipfee,sm.ProductTotal,sm.SOTotal,sm.payType,sm.PrePayFee,sm.status
+        from somain sm
+        inner join Customer c
+        on c.CustomerCode = sm.CustomerCode
+        inner join scmuser s
+        on s.Account = sm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and sm.payType = 1 and sm.status = 2
+                </when>
+                <when test="payType==2">
+                    and sm.payType = 2 and sm.status = 1
+                </when>
+                <when test="payType==3">
+                    and sm.payType = 3 and sm.status = 1
+                </when>
+            </choose>
+        </where>
+        group by sm.SOID order by sm.CreateTime
+        limit #{page.currentPage},#{page.pageSize}
+        )count
+    </select>
+    <select id="queryPoMainByPayRecord" resultType="com.aowin.domain.PoMain">
+        select pm.POID,pm.CreateTime,v.Name venderName,s.name
+        scmuserName,pm.tipfee,pm.ProductTotal,pm.POTotal,pm.payType,pm.PrePayFee,pm.status
+        from pomain pm
+        inner join Vender v
+        on v.VenderCode = pm.VenderCode
+        inner join scmuser s
+        on s.Account = pm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and pm.payType = 1 and pm.status = 2
+                </when>
+                <when test="payType==2">
+                    and pm.payType = 2 and pm.status = 1
+                </when>
+                <when test="payType==3">
+                    and pm.payType = 3 and pm.status = 1
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPoMainByPayRecordCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select pm.POID,pm.CreateTime,v.Name venderName,s.name
+        scmuserName,pm.tipfee,pm.ProductTotal,pm.POTotal,pm.payType,pm.PrePayFee,pm.status
+        from pomain pm
+        inner join Vender v
+        on v.VenderCode = pm.VenderCode
+        inner join scmuser s
+        on s.Account = pm.Account
+        <where>
+            <choose>
+                <when test="payType==1">
+                    and pm.payType = 1 and pm.status = 2
+                </when>
+                <when test="payType==2">
+                    and pm.payType = 2 and pm.status = 1
+                </when>
+                <when test="payType==3">
+                    and pm.payType = 3 and pm.status = 1
+                </when>
+            </choose>
+        </where>
+        group by pm.POID order by pm.CreateTime asc
+        limit #{page.currentPage},#{page.pageSize}
+        )count
+    </select>
+    <select id="queryPayCondition" resultType="com.aowin.domain.PayRecord">
+        select orderCode,payTime,payPrice,account,payType
+        from payrecord
+        <where>
+            <if test="payCondition.inOrOut==1">
+                <if test="payCondition.payType == null or payCondition.payType == 0 ">
+                    payType = 1 or payType = 3
+                </if>
+                <if test="payCondition.payType == 1">
+                    and payType = 1
+                </if>
+                <if test="payCondition.payType == 3">
+                    and payType = 3
+                </if>
+            </if>
+            <if test="payCondition.orderCode!=null and payCondition.orderCode!=''">
+                and orderCode = #{payCondition.orderCode}
+            </if>
+            <if test="payCondition.payType!=null and payCondition.payType!='' and payCondition.payType!= 0">
+                and payType = #{payCondition.payType}
+            </if>
+            <if test="payCondition.startTime!=null and payCondition.startTime!='' and payCondition.startTime!='undefined'">
+                and payTime >= #{payCondition.startTime}
+            </if>
+            <if test="payCondition.endTime!=null and payCondition.endTime!='' and payCondition.endTime!='undefined'">
+                and #{payCondition.endTime} >= payTime
+            </if>
+
+            <if test="payCondition.inOrOut==2">
+                <if test="payCondition.payType == null or payCondition.payType == 0  ">
+                    and payType = 2 or payType = 4
+                </if>
+                <if test="payCondition.payType == 2">
+                    and payType = 2
+                </if>
+                <if test="payCondition.payType == 4">
+                    and payType = 4
+                </if>
+            </if>
+            <if test="payCondition.orderCode!=null and payCondition.orderCode!=''">
+                and orderCode = #{payCondition.orderCode}
+            </if>
+            <if test="payCondition.payType!=null and payCondition.payType!='' and payCondition.payType!= 0">
+                and payType = #{payCondition.payType}
+            </if>
+            <if test="payCondition.startTime!=null and payCondition.startTime!='' and payCondition.startTime!='undefined'">
+                and payTime >= #{payCondition.startTime}
+            </if>
+            <if test="payCondition.endTime!=null and payCondition.endTime!='' and payCondition.endTime!='undefined'">
+                and #{payCondition.endTime} >= payTime
+            </if>
+        </where>
+        group by orderCode order by payTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPayConditionCount" resultType="java.lang.Integer">
+        select count(*) from(
+        select orderCode,payTime,payPrice,account,payType
+        from payrecord
+        <where>
+            <if test="payCondition.inOrOut==1">
+                <if test="payCondition.payType == null or payCondition.payType == 0  ">
+                    and payType = 1 or payType = 3
+                </if>
+                <if test="payCondition.payType == 1">
+                    and payType = 1
+                </if>
+                <if test="payCondition.payType == 3">
+                    and payType = 3
+                </if>
+            </if>
+            <if test="payCondition.orderCode!=null and payCondition.orderCode!=''">
+                and orderCode = #{payCondition.orderCode}
+            </if>
+            <if test="payCondition.payType!=null and payCondition.payType!='' and payCondition.payType!= 0">
+                and payType = #{payCondition.payType}
+            </if>
+            <if test="payCondition.startTime!=null and payCondition.startTime!='' and payCondition.startTime!='undefined'">
+                and payTime >= #{payCondition.startTime}
+            </if>
+            <if test="payCondition.endTime!=null and payCondition.endTime!='' and payCondition.endTime!='undefined'">
+                and #{payCondition.endTime} >= payTime
+            </if>
+
+            <if test="payCondition.inOrOut==2">
+                <if test="payCondition.payType == null or payCondition.payType == 0 ">
+                    and payType = 2 or payType = 4
+                </if>
+                <if test="payCondition.payType == 2">
+                    and payType = 2
+                </if>
+                <if test="payCondition.payType == 4">
+                    and payType = 4
+                </if>
+            </if>
+            <if test="payCondition.orderCode!=null and payCondition.orderCode!=''">
+                and orderCode = #{payCondition.orderCode}
+            </if>
+            <if test="payCondition.startTime!=null and payCondition.startTime!='' and payCondition.startTime!='undefined'">
+                and payTime >= #{payCondition.startTime}
+            </if>
+            <if test="payCondition.endTime!=null and payCondition.endTime!='' and payCondition.endTime!='undefined'">
+                and #{payCondition.endTime} >= payTime
+            </if>
+            <if test="payCondition.payType!=null and payCondition.payType!='' and payCondition.payType!= 0">
+                and payType = #{payCondition.payType}
+            </if>
+        </where>
+        group by orderCode order by payTime asc
+        )count
+    </select>
+    <select id="querySoMainPayReport" resultType="com.aowin.domain.PayRecord">
+        select pr.orderCode,s.CreateTime,pr.payTime,pr.account,pr.payPrice,s.Status from payrecord pr
+        inner join somain s
+        on pr.orderCode = s.SOID
+        <where>
+            ( s.SOID = pr.orderCode)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and pr.payTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and pr.payTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pr.orderCode order by pr.payTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="querySoMainPayReportCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select pr.orderCode,s.CreateTime,pr.payTime,pr.account,pr.payPrice,s.Status from payrecord
+        pr
+        inner join somain s
+        on pr.orderCode = s.SOID
+        <where>
+            ( s.SOID = pr.orderCode)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and pr.payTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and pr.payTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pr.orderCode order by pr.payTime asc
+        )count
+    </select>
+    <select id="queryPoMainPayReport" resultType="com.aowin.domain.PayRecord">
+        select pr.orderCode,p.CreateTime,pr.payTime,pr.account,pr.payPrice,p.Status from payrecord pr
+        inner join pomain p
+        on pr.orderCode = p.POID
+        <where>
+            ( p.POID = pr.orderCode)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and pr.payTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and pr.payTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pr.orderCode order by pr.payTime asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="queryPoMainPayReportCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM(
+        select pr.orderCode,p.CreateTime,pr.payTime,pr.account,pr.payPrice,p.Status from payrecord pr
+        inner join pomain p
+        on pr.orderCode = p.POID
+        <where>
+            ( p.POID = pr.orderCode)
+            <if test="startDate!=null and startDate!='' and startDate!='null' ">
+                and pr.payTime &gt; #{startDate}
+            </if>
+            <if test="endDate!=null and endDate!='' and endDate!='null' ">
+                and pr.payTime &lt; #{endDate}
+            </if>
+        </where>
+        group by pr.orderCode order by pr.payTime asc
+         )count
+    </select>
+</mapper>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aowin.mapper.CustomerMapper">
+    <select id="getAllCustomer" resultType="com.aowin.domain.Customer">
+        select *
+        from customer
+    </select>
+
+    <select id="queryCustomerByPage" resultType="com.aowin.domain.Customer">
+        select CustomerCode,Name,Contactor,Address,Postcode,CreateDate,Tel,Fax,Password
+        from customer
+        <where>
+            <if test="customer.name!=null and customer.name!='' ">
+                or Name like concat('%',#{customer.name},'%')
+            </if>
+            <if test="customer.customerCode!=null and customer.customerCode != ''">
+                or CustomerCode = #{customer.customerCode}
+            </if>
+        </where>
+        group by CustomerCode order by CreateDate asc
+        limit #{page.currentPage},#{page.pageSize}
+    </select>
+    <select id="getCustomerCount" resultType="java.lang.Integer">
+        select count(*) from (
+        select CustomerCode,Name,Contactor,Address,Postcode,CreateDate,Tel,Fax,Password
+        from customer
+        <where>
+            <if test="customer.name!=null and customer.name!='' ">
+                or Name like concat('%',#{customer.name},'%')
+            </if>
+            <if test="customer.customerCode!=null and customer.customerCode != ''">
+                or CustomerCode = #{customer.customerCode}
+            </if>
+        </where>
+        group by CustomerCode order by CreateDate asc
+        limit #{page.currentPage},#{page.pageSize}
+        ) count
+    </select>
+
+    <insert id="addCustomer">
+        insert into customer(CustomerCode, Name, Password, Contactor, Address, Postcode, Tel, Fax, CreateDate)
+        values (#{customerCode}, #{name}, #{password}, #{contactor}, #{address}, #{postCode}, #{tel}, #{fax},
+                #{createDate})
+    </insert>
+
+    <update id="updateCustomer">
+        update customer
+        set CustomerCode = #{customerCode},
+            contactor=#{contactor},fax=#{fax},password=#{password},
+            name=#{name}, address = #{address},postCode=#{postCode},createdate=#{createDate},tel=#{tel}
+        where CustomerCode = #{oldCustomerCode}
+    </update>
+
+    <delete id="delCustomer">
+        delete from customer where CustomerCode = #{customerCode}
+    </delete>
+</mapper>

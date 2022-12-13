@@ -1,0 +1,193 @@
+<link rel="stylesheet" href="css/index.css"/>
+<script src="js/jquery-3.4.1.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/axios.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="js/menu.js"></script>
+
+<div id="app" style="height: 100%;">
+  <el-breadcrumb separator-class="el-icon-arrow-right">
+    <el-breadcrumb-item :to="{ path: '/' }">位置</el-breadcrumb-item>
+    <el-breadcrumb-item>财务收支</el-breadcrumb-item>
+    <el-breadcrumb-item>收支查询</el-breadcrumb-item>
+  </el-breadcrumb>
+  <br/>
+  <el-form :inline="true" :data="form" class="demo-form-inline">
+    <el-form-item label="相关单据号:">
+      <el-input v-model="form.orderCode" placeholder="相关单据号" style="width: 160px;"></el-input>
+    </el-form-item>
+    <el-form-item label="日期:">
+      <div class="block">
+        <el-date-picker
+                v-model="form.payTime"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期" style="width: 240px"
+                value-format="yyyy-MM-dd">
+        </el-date-picker>
+      </div>
+    </el-form-item>
+    <el-form-item label="收支类型:">
+      <el-select v-model="form.inOrOut" clearable placeholder="请选择收支类型" style="width: 140px">
+        <el-option value="1" label="收款"></el-option>
+        <el-option value="2" label="付款"></el-option>
+      </el-select>
+    </el-form-item>
+    <el-form-item label="付款方式:">
+      <el-select v-model="form.payType" clearable placeholder="请选择付款方式" style="width: 140px">
+        <el-option value="1" label="收款" v-if="form.inOrOut==1"></el-option>
+        <el-option value="2" label="付款" v-if="form.inOrOut==2"></el-option>
+        <el-option value="3" label="收预付款" v-if="form.inOrOut==1"></el-option>
+        <el-option value="4" label="付预付款" v-if="form.inOrOut==2"></el-option>
+      </el-select>
+    </el-form-item>
+    <el-form-item>
+      <el-button type="primary"  size="middle"  @click="search">查询</el-button>
+    </el-form-item>
+    <el-form-item>
+      <el-button type="primary"  size="middle" @click="clear">清空查询</el-button>
+    </el-form-item>
+  </el-form>
+
+
+  <el-table :data="tableData" height="410px" border style="width: 100%">
+    <el-table-column fixed prop="orderCode" label="销售单编号" width="180">
+      <template  slot-scope="scope">
+        <el-button type="text" @click="showDetails(scope.row.orderCode)">{{scope.row.orderCode}}</el-button>
+      </template>
+    </el-table-column>
+    <el-table-column prop="payTime" label="收付时间" width="180"></el-table-column>
+    <el-table-column prop="payPrice" label="收付金额" width="180"></el-table-column>
+    <el-table-column prop="account" label="经手人" width="180"></el-table-column>
+    <el-table-column prop="payType" label="付款方式" width="180">
+      <template  slot-scope="scope">
+        <span v-if="scope.row.payType==1">收款</span>
+        <span v-else-if="scope.row.payType==2">付款</span>
+        <span v-else-if="scope.row.payType==3">收预付款</span>
+        <span v-else-if="scope.row.payType==4">付预付款</span>
+      </template>
+    </el-table-column>
+  </el-table>
+  <el-pagination
+          background
+          layout="sizes, prev, pager, next, jumper, ->, total, slot"
+          :total="totalRecord"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :page-sizes="[6,10,15,20]"
+          @current-change="handleCurrentChange"
+          @size-change="handleSize">
+  </el-pagination>
+
+  <el-dialog title="销售单明细" :visible.sync="dialogTableVisible" width="840">
+    <el-table :data="gridData">
+      <el-table-column property="orderCode" label="销售单编号" width="180"></el-table-column>
+      <el-table-column property="productName" label="商品名称" width="140"></el-table-column>
+      <el-table-column property="unitPrice" label="单价" width="120"></el-table-column>
+      <el-table-column property="num" label="数量" width="120"></el-table-column>
+      <el-table-column property="unitName" label="单位" width="120"></el-table-column>
+      <el-table-column property="itemPrice" label="产品总价" ></el-table-column>
+    </el-table>
+  </el-dialog>
+</div>
+
+<script>
+  window.onload = function () {
+
+    let vm = new Vue({
+      el: "#app",
+      data:{
+        labelPosition:"left",
+        dialogTableVisible:false,
+        tableData:[],
+        options:[],
+        totalRecord:0,
+        currentPage:1,
+        pageSize:6,
+        gridData:[],
+        form:{
+          startTime:"",
+          endTime:"",
+          orderCode:"",
+          customerName:"",
+          payType:"",
+          payTime:"",
+          inOrOut:""
+        },
+        customersForm:{//客户信息
+          customers:[],
+          inOrOut: "",
+          productName:""
+        },
+      },
+      methods:{
+        init:function (){
+          this.onsubmit(this.currentPage,this.pageSize);
+        },
+        handleCurrentChange:function (val){
+          this.currentPage = val;
+          this.onsubmit(this.currentPage,this.pageSize);
+        },
+        handleSize:function (val){
+          this.pageSize = val;
+          this.currentPage = 1;
+          this.onsubmit(this.currentPage,this.pageSize);
+        },
+        //展示明细表
+        showDetails:function (orderCode){
+          let that = this;
+          this.dialogTableVisible = true;
+          axios.get("getSoItemsBySoId?orderCode="+orderCode).then(function (resp){
+            console.log(resp.data.data)
+            that.gridData = resp.data.data;
+          });
+        },
+        onsubmit:function (cup,pSize){
+          let that = this;
+          console.log(this.form.payTime)
+          if(this.form.payTime !=null){
+            this.form.startTime = this.form.payTime[0];
+            this.form.endTime = this.form.payTime[1];
+          }else{
+            this.form.startTime = this.form.endTime = "";
+          }
+
+          console.log(this.form.payType);
+          let payCondition = {
+            currentPage:cup,
+            pageSize:pSize,
+            orderCode:this.form.orderCode,
+            startTime:this.form.startTime,
+            endTime:this.form.endTime,
+            inOrOut:this.form.inOrOut,
+            payType:this.form.payType,
+          }
+          axios.post("queryPayCondition",payCondition).then(function (resp){
+            that.tableData = resp.data.data.lists;
+            that.totalRecord = resp.data.data.totalRecord;
+          });
+
+          //查询供应商信息
+          axios.get("getCustomerMassage").then(function (resp){
+            that.customersForm.customers = resp.data.data;
+          });
+          this.currentPage=1;
+        },
+        search:function (){
+          this.onsubmit(1,this.pageSize,this.inOrOut);
+          this.currentPage=1;
+        },
+        clear:function (){
+          this.form.status = this.form.payType = this.form.inOrOut=this.form.orderCode = this.form.payTime = "";
+          this.onsubmit(1,this.pageSize);
+        }
+      }
+    });
+
+    vm.init();
+  }
+</script>

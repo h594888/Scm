@@ -1,0 +1,260 @@
+<link rel="stylesheet" href="css/index.css"/>
+<script src="js/jquery-3.4.1.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/axios.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="js/menu.js"></script>
+
+<div id="app" style="height: 100%;">
+    <el-breadcrumb separator-class="el-icon-arrow-right">
+        <el-breadcrumb-item :to="{ path: '/' }">位置</el-breadcrumb-item>
+        <el-breadcrumb-item>采购管理</el-breadcrumb-item>
+        <el-breadcrumb-item>采购单查询</el-breadcrumb-item>
+    </el-breadcrumb>
+    <br/>
+    <el-form :inline="true" :data="form" class="demo-form-inline">
+        <el-form-item label="编号:">
+            <el-input v-model="form.poId" placeholder="编号" style="width: 160px;"></el-input>
+        </el-form-item>
+        <el-form-item label="日期:">
+            <div class="block">
+                <el-date-picker
+                        v-model="form.date"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期" style="width: 240px"
+                        value-format="yyyy-MM-dd">
+                </el-date-picker>
+            </div>
+        </el-form-item>
+        <el-form-item label="供应商:">
+            <el-select v-model="form.venderCode" clearable placeholder="请选择供应商" style="width: 202px">
+                <el-option v-for="vender in vendersForm.venders"
+                           :label="vender.name"
+                           :value="vender.venderCode">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="付款方式:">
+            <el-select v-model="form.payType" clearable placeholder="请选择付款方式" style="width: 140px">
+                <el-option value="1" label="货到付款"></el-option>
+                <el-option value="2" label="款到发货"></el-option>
+                <el-option value="3" label="预付款发货"></el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="处理状态:">
+            <el-select v-model="form.status" clearable placeholder="请选择处理状态" style="width: 140px">
+                <el-option value="1" label="新增"></el-option>
+                <el-option value="4" label="了结"></el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary"  size="middle"  @click="search">查询</el-button>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary"  size="middle" @click="clear">清空查询</el-button>
+        </el-form-item>
+    </el-form>
+    <el-table :data="tableData" height="410px" border style="width: 100%">
+        <el-table-column fixed prop="poId" label="采购单编号" width="180">
+            <template  slot-scope="scope">
+                <el-button type="text" @click="showDetails(scope.row.poId)">{{scope.row.poId}}</el-button>
+            </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
+        <el-table-column prop="venderName" label="供应商名称" width="180"></el-table-column>
+        <el-table-column prop="scmuserName" label="创建用户" width="180"></el-table-column>
+        <el-table-column prop="tipFee" label="附加费用" width="180"></el-table-column>
+        <el-table-column prop="productTotal" label="采购产品总价" width="180"></el-table-column>
+        <el-table-column prop="poTotal" label="采购单总价格" width="180"></el-table-column>
+        <el-table-column prop="payType" label="付款方式" width="180">
+            <template  slot-scope="scope">
+                <span v-if="scope.row.payType==1">货到付款</span>
+                <span v-else-if="scope.row.payType==2">款到发货</span>
+                <span v-else-if="scope.row.payType==3">预付款发货</span>
+            </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="180">
+            <template slot-scope="scope">
+                <span v-if="scope.row.status==1">新建</span>
+                <span v-else-if="scope.row.status==2">收货</span>
+                <span v-else-if="scope.row.status==3">付款</span>
+                <span v-else-if="scope.row.status==4">了结</span>
+                <span v-else-if="scope.row.status==5">预付</span>
+            </template>
+        </el-table-column>
+<!--        <el-table-column fixed="right" label="操作" width="140">-->
+<!--            <template slot-scope="scope">-->
+<!--                <el-button type="text" size="medium">删除</el-button>-->
+<!--                <el-button type="text" size="medium" @click="dialogFormVisible = true">编辑</el-button>-->
+<!--            </template>-->
+<!--        </el-table-column>-->
+    </el-table>
+    <el-pagination
+            background
+            layout="sizes, prev, pager, next, jumper, ->, total, slot"
+            :total="totalRecord"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :page-sizes="[6,10,15,20]"
+            @current-change="handleCurrentChange"
+            @size-change="handleSize">
+    </el-pagination>
+
+    <el-dialog title="采购单明细" :visible.sync="dialogTableVisible" width="840">
+        <el-table :data="gridData">
+            <el-table-column property="poId" label="采购单编号" width="180"></el-table-column>
+            <el-table-column property="productName" label="商品名称" width="140"></el-table-column>
+            <el-table-column property="unitPrice" label="单价" width="120"></el-table-column>
+            <el-table-column property="num" label="数量" width="120"></el-table-column>
+            <el-table-column property="unitName" label="单位" width="120"></el-table-column>
+            <el-table-column property="itemPrice" label="产品总价" ></el-table-column>
+        </el-table>
+    </el-dialog>
+</div>
+
+<script>
+    window.onload = function () {
+
+        let vm = new Vue({
+            el: "#app",
+            data:{
+                labelPosition:"left",
+                dialogTableVisible:false,
+                dialogFormVisible:false,
+                tableData:[],
+                options:[],
+                totalRecord:0,
+                currentPage:1,
+                pageSize:6,
+                gridData:[],
+                form:{
+                    startTime:"",
+                    endTime:"",
+                    poId:"",
+                    venderName:"",
+                    payType:"",
+                    status:"",
+                    date:"",
+                    venderCode:""
+                },
+                vendersForm:{//供应商信息
+                    venders:[],
+                    venderCode: "",
+                    name:""
+                },
+            },
+            methods:{
+                init:function (){
+                    // this.getData(this.currentPage,this.pageSize);
+                    // console.log(this.form.poId)
+                    // this.onsubmit(this.currentPage,this.pageSize,this.form.poId,this.form.startTime,this.form.endTime,this.form.venderCode,this.form.payType,this.form.status);
+                    this.onsubmit(this.currentPage,this.pageSize);
+                },
+                getData:function (curP,pSize){
+                    let that = this;
+                    //查询采购单信息
+                    // axios.get("queryPoMainByPage?currentPage="+curP+"&pageSize="+pSize).then(function (resp){
+                    //     that.tableData = resp.data.data.lists;
+                    //     that.totalRecord = resp.data.data.totalRecord;
+                    // });
+
+
+                    //查询供应商信息
+                    axios.get("getVenderMassage").then(function (resp){
+                        console.log(resp.data.data+"------------------");
+                        that.vendersForm.venders = resp.data.data;
+                    });
+                },
+                handleCurrentChange:function (val){
+                    this.currentPage = val;
+                    // this.getData(this.currentPage,this.pageSize,this.scmuserName,this.name);
+                    this.onsubmit(this.currentPage,this.pageSize);
+                },
+                handleSize:function (val){
+                    this.pageSize = val;
+                    this.currentPage = 1;
+                    // this.getData(this.currentPage,this.pageSize,this.scmuserName,this.name);
+                    this.onsubmit(this.currentPage,this.pageSize);
+                },
+                //展示明细表
+                showDetails:function (poId){
+                    let that = this;
+                    this.dialogTableVisible = true;
+                    axios.get("getPoItemsByPoId?poId="+poId).then(function (resp){
+                        console.log(resp.data.data)
+                        that.gridData = resp.data.data;
+                    });
+                },
+                onsubmit:function (cup,pSize){
+                    let that = this;
+                    console.log(this.form.date)
+                    if(this.form.date !=null){
+                        this.form.startTime = this.form.date[0];
+                        this.form.endTime = this.form.date[1];
+                    }else{
+                        this.form.startTime = this.form.endTime = "";
+                    }
+
+                    console.log(this.form.payType);
+                    // console.log(this.form.venderCode);
+                    console.log(this.form.status);
+                    // console.log(stime);
+                    // console.log(etime);
+                    // axios.get("queryPoMainCondition?currentPage="+curP+"&pageSize="+pSize+"&poId="+this.form.poId+"&startTime="+this.form.startTime+"&endTime="+this.form.endTime+"&venderCode="+this.form.venderCode+"&payType="+this.form.payType+"&status="+this.form.status).then(function (resp){
+                    //     that.tableData = resp.data.data.lists;
+                    //     that.totalRecord = resp.data.data.totalRecord;
+                    // });
+                   /* let condition = new URLSearchParams();
+                    condition.append('currentPage',cup);
+                    condition.append('pageSize', pSize);
+                    condition.append('poId', this.form.poId);
+                    condition.append('startTime',this.form.startTime);
+                    condition.append('endTime', this.form.endTime);
+                    condition.append('venderCode', this.form.venderCode);
+                    condition.append('payType', this.form.payType);
+                    condition.append('status', this.form.status);*/
+
+                    // console.log(condition)
+                    let condition = {
+                        currentPage:cup,
+                        pageSize:pSize,
+                        poId:this.form.poId,
+                        startTime:this.form.startTime,
+                        endTime:this.form.endTime,
+                        venderCode:this.form.venderCode,
+                        payType:this.form.payType,
+                        status:this.form.status
+                    }
+
+                    axios.post("queryPoMainCondition",condition).then(function (resp){
+                        that.tableData = resp.data.data.lists;
+                        that.totalRecord = resp.data.data.totalRecord;
+                    });
+
+                    //查询供应商信息
+                    axios.get("getVenderMassage").then(function (resp){
+                        that.vendersForm.venders = resp.data.data;
+                    });
+                },
+                search:function (){
+                    /*模糊查询*/
+                    // this.form.startTime = this.form.date[0];
+                    // this.form.endTime = this.form.date[1];
+                    // console.log(this.form.endTime)
+                    this.onsubmit(1,this.pageSize,this.venderCode);
+                },
+                clear:function (){
+                    this.form.status = this.form.payType = this.form.venderCode=this.form.poId = this.form.date = "";
+                    this.onsubmit(1,this.pageSize);
+                }
+            }
+        });
+
+        vm.init();
+    }
+</script>
